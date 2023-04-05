@@ -6,11 +6,9 @@ const path = require('path');
 
 class PlayListDownload {
   strategy = null; // 下载策略
-  playListData = null; // 数据列表
   downloadDir = null; // 下载保存目录
 
-  constructor(playListData, downloadDir = "./download") {
-    this.playListData = playListData;
+  constructor(downloadDir = "./download") {
     this.downloadDir = downloadDir;
   }
 
@@ -18,12 +16,17 @@ class PlayListDownload {
     this.strategy = strategy;
   }
 
-  startDownload() {
+  /**
+   * 
+   * @param {any[]} playListData 
+   * @returns 
+   */
+  startDownload(playListData) {
     if (!this.strategy) return;
 
     if (!fs.existsSync(this.downloadDir)) fs.mkdirSync(this.downloadDir, { recursive: true });
 
-    this._playListDownload(this.playListData);
+    this._playListDownload(playListData);
   }
 
 
@@ -116,16 +119,14 @@ class Clint {
     const page = await browser.newPage();
     const iPhone = pptr.KnownDevices['iPhone X']; // emulate iPhoneX
     await page.emulate(iPhone)
-    await page.goto(`https://y.music.163.com/m/playlist?id=${process.argv[2]}`);
 
-    const playListData = await page.evaluate(() => {
-      return window?.REDUX_STATE?.Playlist?.data ?? null;
-    });
-
+    const id = process.argv[2].trim();
+    await page.goto(`https://y.music.163.com/m/playlist?id=${id}`);
+    const playListData = await page.evaluate(() => window?.REDUX_STATE?.Playlist?.data ?? null);
     if (playListData) {
-      const dc = new PlayListDownload(playListData, "./download");
+      const dc = new PlayListDownload("./download");
       dc.setStrategy(new HttpDownloadStrategy());
-      dc.startDownload();
+      dc.startDownload(playListData);
     }
 
     await browser.close();
